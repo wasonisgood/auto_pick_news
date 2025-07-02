@@ -1,0 +1,110 @@
+# .github/workflows/daily-news-analysis.yml
+name: 每日日本新聞分析
+
+on:
+  # 每天 UTC 18:00 執行（日本時間凌晨 3:00）
+  schedule:
+    - cron: '0 18 * * *'
+  
+  # 允許手動觸發
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: '指定分析日期 (YYYYMMDD，可選)'
+        required: false
+        type: string
+
+jobs:
+  trigger-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📅 設定時區和時間
+      run: |
+        echo "UTC 時間: $(date -u)"
+        echo "日本時間 (JST): $(TZ='Asia/Tokyo' date)"
+        echo "執行時間: 日本時間每日凌晨 3:00"
+    
+    - name: 🚀 觸發 Netlify Function
+      run: |
+        echo "正在觸發新聞分析..."
+        
+        # 設定目標日期（如果手動指定）
+        if [ -n "${{ github.event.inputs.target_date }}" ]; then
+          TARGET_DATE="${{ github.event.inputs.target_date }}"
+          echo "使用手動指定日期: $TARGET_DATE"
+        else
+          # 自動計算日本時間的前一天
+          TARGET_DATE=$(TZ='Asia/Tokyo' date -d '1 day ago' '+%Y%m%d')
+          echo "自動計算目標日期: $TARGET_DATE"
+        fi
+        
+        # 呼叫 Netlify Function
+        RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+          -X POST \
+          -H "Content-Type: application/json" \
+          -d "{\"target_date\": \"$TARGET_DATE\"}" \
+          "${{ secrets.NETLIFY_FUNCTION_URL }}")
+        
+        # 分離回應內容和狀態碼
+        HTTP_BODY=$(echo "$RESPONSE" | sed -n '1,/HTTP_STATUS:/p' | head -n -1)
+        HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+        
+        echo "HTTP 狀態碼: $HTTP_STATUS"
+        echo "回應內容:"
+        echo "$HTTP_BODY" | jq '.' || echo "$HTTP_BODY"
+        
+        # 檢查執行結果
+        if [ "$HTTP_STATUS" -eq 200 ]; then
+          echo "✅ 新聞分析執行成功"
+          
+          # 提取關鍵資訊
+          SUCCESS=$(echo "$HTTP_BODY" | jq -r '.success // false')
+          SAVED_COUNT=$(echo "$HTTP_BODY" | jq -r '.data.saved_count // 0')
+          MESSAGE=$(echo "$HTTP_BODY" | jq -r '.message // "無訊息"')
+          
+          echo "執行結果: $SUCCESS"
+          echo "儲存數量: $SAVED_COUNT"
+          echo "訊息: $MESSAGE"
+          
+          # 如果有錯誤，顯示錯誤訊息
+          ERRORS=$(echo "$HTTP_BODY" | jq -r '.errors // empty')
+          if [ -n "$ERRORS" ] && [ "$ERRORS" != "null" ]; then
+            echo "⚠️ 執行過程中的錯誤:"
+            echo "$ERRORS" | jq -r '.[]'
+          fi
+          
+        else
+          echo "❌ 新聞分析執行失敗"
+          echo "狀態碼: $HTTP_STATUS"
+          echo "錯誤內容: $HTTP_BODY"
+          exit 1
+        fi
+    
+    - name: 📊 發送執行結果通知 (可選)
+      if: always()
+      run: |
+        echo "可以在這裡加入通知邏輯"
+        echo "例如：發送到 Slack、Discord、Email 等"
+        echo "或者更新狀態到其他服務"
+        
+        # 範例：發送簡單的 webhook 通知
+        # curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+        #   -H "Content-Type: application/json" \
+        #   -d "{\"text\": \"日本新聞分析完成: $(date)\"}"
+
+  # 備用 job：檢查執行歷史
+  check-history:
+    runs-on: ubuntu-latest
+    needs: trigger-analysis
+    if: always()
+    
+    steps:
+    - name: 📈 檢查最近執行歷史
+      run: |
+        echo "=== 最近的執行記錄 ==="
+        echo "本次執行時間: $(date -u)"
+        echo "下次預定執行: 明天 UTC 18:00 (日本時間凌晨 3:00)"
+        
+        # 可以加入查詢資料庫的邏輯來檢查最近的執行記錄
+        echo "如需檢查詳細執行歷史，請查看 Supabase 資料庫中的 selected_news 表格"
