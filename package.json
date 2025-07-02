@@ -1,0 +1,27 @@
+{
+  "name": "japanese-news-analyzer",
+  "version": "1.0.0",
+  "description": "Japanese news analysis service using Netlify Functions",
+  "main": "netlify/functions/analyze_news.py",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'",
+    "test": "python local_test.py"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "your-repository-url"
+  },
+  "keywords": [
+    "netlify",
+    "functions",
+    "python",
+    "news",
+    "analysis",
+    "japan"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

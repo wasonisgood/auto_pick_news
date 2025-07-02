@@ -77,7 +77,7 @@ def test_function_import():
     print("\n🔧 測試 Function 導入...")
     
     try:
-        from analyze_news import handler
+        from netlify.functions.analyze_news import handler
         print("  ✅ Netlify Function 導入成功")
         return handler
     except ImportError as e:

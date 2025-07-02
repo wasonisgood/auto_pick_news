@@ -1,48 +1,8 @@
-# netlify.toml
 [build]
-  # 構建命令 (如果需要的話)
-  command = "echo 'Building Netlify Functions...'"
-  
-  # 發布目錄
-  publish = "public"
-  
-  # Functions 目錄
   functions = "netlify/functions"
-
-[functions]
-  # 設定 Python runtime
-  node_bundler = "esbuild"
-  
-  # 函數超時時間 (最大 10 分鐘)
-  timeout = 600
-
-# 環境變數設定 (在 Netlify 控制台設定實際值)
-[context.production.environment]
-  PYTHON_VERSION = "3.9"
-
-# 重定向規則
-[[redirects]]
-  from = "/api/analyze"
-  to = "/.netlify/functions/analyze_news"
-  status = 200
+  publish = "public"
 
 [[redirects]]
-  from = "/health"
-  to = "/.netlify/functions/analyze_news"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
-
-# Headers 設定
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type"
-
-# 本地開發設定
-[dev]
-  command = "echo 'Local development mode'"
-  port = 8888
-  targetPort = 3000
-  publish = "public"
-  functions = "netlify/functions"
